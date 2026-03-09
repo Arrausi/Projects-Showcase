@@ -1,0 +1,779 @@
+#include <stdio.h>
+#include "colores.h"
+#include "azar.h"
+#include "duerme.h"
+#define COL 4
+#define FIL 10
+#define CAR 40
+#define ORO 0
+#define COP 1
+#define ESP 2
+#define BAS 3
+
+typedef struct
+{
+	char pal;  // palo de la carta
+	char num1; // espacio o 1
+	char num2; // numero de la carta
+} tcarta;
+
+typedef struct
+{
+	int ncartas;		 // numero de cartas en vcartas, es 40
+	tcarta vcartas[CAR]; // espacios para cada carta que vamos a usar de la baraja
+} tbaraja;
+
+typedef struct
+{
+	int id;				// Identificador jugador;
+	int ncartas;		// numero de cartas en la mano del jugador
+	tcarta vcartas[10]; // cartas en la mano del jugador
+} tjugador;
+
+typedef struct
+{
+	tjugador jugadores[4];
+} tjugadores;
+
+typedef struct
+{
+	int fila, col;
+	tcarta matriz[FIL][COL]; // Representa las cartas jugadas en el tablero
+} tmatriz;
+
+// funciones de baraja
+void asignar_baraja(tbaraja *bj);
+void mezclar_baraja(tbaraja *bj);
+
+// funciones de carta
+void repartir_cartas(tbaraja *bj, tjugadores *js);
+void mostrar_cartas(tjugadores js);
+void mostrar_cartas_jugador(tjugadores js);
+void ocultar_cartas(tjugadores js);
+
+// funciones de mantel
+void imprimir_mantel(tmatriz pm);
+void inicializar_mantel(tmatriz *pm);
+
+// funciones de partida
+int jugador_cinco_oros(tjugadores *pj);
+void buscar_posibles(tmatriz m, tmatriz maux, tjugador *p);
+int jugador_tiene_carta(tjugador j, tcarta c);
+void poner_carta_mantel(tmatriz *m, tmatriz maux, tcarta carta);
+void sacar_carta_jugador(tcarta carta, tjugador *jug);
+void buscar_posibles_jugador(tmatriz m, tmatriz maux, tjugador jug, tcarta *p, int *num_posibles_jugadas);
+
+int main()
+{
+	inicializar_azar();
+	tcarta posibles[8];
+	int num, i, j, u, jugcont = 1, contar_jugadas = 0, indice_jugador_inicial, primera_iteracion = 1, partida_acabada = 0, cartas_ocultas = 1;
+	char opjug, opcar;
+	tbaraja baraja;
+	tjugadores jugadores;
+	tjugador jugador;
+	tjugador posibles_tiradas;
+	tmatriz m, maux = {
+				   10, 4, // El número de elementos (en este caso, 40)
+				   {	  // Fila 0: todas las cartas con el número '12'
+					{{'O', '1', '2'}, {'C', '1', '2'}, {'E', '1', '2'}, {'B', '1', '2'}},
+					// Fila 1: todas las cartas con el número '11'
+					{{'O', '1', '1'}, {'C', '1', '1'}, {'E', '1', '1'}, {'B', '1', '1'}},
+					// Fila 2: todas las cartas con el número '10'
+					{{'O', '1', '0'}, {'C', '1', '0'}, {'E', '1', '0'}, {'B', '1', '0'}},
+					// Fila 3: todas las cartas con el número '7'
+					{{'O', ' ', '7'}, {'C', ' ', '7'}, {'E', ' ', '7'}, {'B', ' ', '7'}},
+					// Fila 4: todas las cartas con el número '6'
+					{{'O', ' ', '6'}, {'C', ' ', '6'}, {'E', ' ', '6'}, {'B', ' ', '6'}},
+					// Fila 5: todas las cartas con el número '5'
+					{{'O', ' ', '5'}, {'C', ' ', '5'}, {'E', ' ', '5'}, {'B', ' ', '5'}},
+					// Fila 6: todas las cartas con el número '4'
+					{{'O', ' ', '4'}, {'C', ' ', '4'}, {'E', ' ', '4'}, {'B', ' ', '4'}},
+					// Fila 7: todas las cartas con el número '3'
+					{{'O', ' ', '3'}, {'C', ' ', '3'}, {'E', ' ', '3'}, {'B', ' ', '3'}},
+					// Fila 8: todas las cartas con el número '2'
+					{{'O', ' ', '2'}, {'C', ' ', '2'}, {'E', ' ', '2'}, {'B', ' ', '2'}},
+					// Fila 9: todas las cartas con el número '1'
+					{{'O', ' ', '1'}, {'C', ' ', '1'}, {'E', ' ', '1'}, {'B', ' ', '1'}}}};
+
+	// Inicializar juego
+	asignar_baraja(&baraja);
+	mezclar_baraja(&baraja);
+	inicializar_mantel(&m);
+
+	do
+	{
+		// Preguntar si hay un jugador humano
+		printf("¿Hay algun jugador humano? [s/n] ");
+		scanf("%c%*c", &opjug);
+	} while (opjug != 'n' && opjug != 'N' && opjug != 's' && opjug != 'S');
+
+	switch (opjug)
+	{
+	case 's':
+	case 'S':
+		repartir_cartas(&baraja, &jugadores);
+		indice_jugador_inicial = jugador_cinco_oros(&jugadores);
+		do
+		{
+			// Preguntar si se quieren ver todas las cartas
+			printf("¿Quieres ver todas las cartas? [s/n] ");
+			scanf("%c%*c", &opcar);
+		} while (opjug != 'n' && opjug != 'N' && opjug != 's' && opjug != 'S');
+		switch (opcar)
+		{
+		case 's':
+		case 'S':
+			cartas_ocultas = 0;
+		case 'n':
+		case 'N':
+			if (cartas_ocultas == 0)
+			{
+
+				mostrar_cartas(jugadores);
+			}
+			else
+			{
+				mostrar_cartas_jugador(jugadores);
+			}
+			imprimir_mantel(m);
+			do
+			{
+				//----------------------------  Iteracion jugador  ----------------------------
+				if (indice_jugador_inicial == 3 || primera_iteracion == 0)
+				{
+					buscar_posibles_jugador(m, maux, jugadores.jugadores[0], posibles, &contar_jugadas);
+
+					do
+					{
+						printf("\nTurno de JUG#1:\n");
+						printf("Tiradas posibles: ");
+						for (j = 0; j < contar_jugadas; j++)
+						{
+							printf("%d: [%c%c%c] ", j + 1, posibles[j].pal, posibles[j].num1, posibles[j].num2);
+						}
+						printf("\n¿Que tirada realizas? ");
+						scanf("%d", &num);
+						if (num < 1 || num > contar_jugadas)
+						{
+							printf("Opción no válida\n");
+						}
+
+					} while (num < 1 || num > contar_jugadas);
+
+					// encuentra la carta que ha seleccionado el usuario en su mano, la saca de su mano y la pone en el mantel
+					sacar_carta_jugador(posibles[num - 1], &jugadores.jugadores[0]);
+					poner_carta_mantel(&m, maux, posibles[num - 1]);
+
+					// Impresion de las cartas
+					if (cartas_ocultas == 0)
+					{
+
+						mostrar_cartas(jugadores);
+					}
+					else
+					{
+						mostrar_cartas_jugador(jugadores);
+					}
+					imprimir_mantel(m);
+				}
+
+				if (jugadores.jugadores[0].ncartas == 0)
+				{
+					partida_acabada = 1;
+				}
+				// ----------------------------  Iteracion bots  ----------------------------
+
+				num = 1;
+				if (primera_iteracion == 1)
+				{
+					if (indice_jugador_inicial == 3)
+					{
+						u = 1;
+					}
+					else
+					{
+						u = indice_jugador_inicial + 1;
+					}
+				}
+				else
+				{
+					u = 1;
+				}
+				for (; u <= 3 && partida_acabada == 0; u++)
+				{
+
+					printf("\nTurno de JUG#%d:\n", u + 1);
+					buscar_posibles_jugador(m, maux, jugadores.jugadores[u], posibles, &contar_jugadas);
+					printf("Tiradas posibles: ");
+					for (j = 0; j < contar_jugadas; j++)
+					{
+						printf("%d: [%c%c%c] ", j + 1, posibles[j].pal, posibles[j].num1, posibles[j].num2);
+					}
+					printf("\n¿Que tirada realizas? %d", num);
+
+					// encuentra la carta que ha seleccionado el usuario en su mano, la saca de su mano y la pone en el mantel
+					sacar_carta_jugador(posibles[num - 1], &jugadores.jugadores[u]);
+					poner_carta_mantel(&m, maux, posibles[num - 1]);
+
+					// Impresion de las cartas
+					if (cartas_ocultas == 0)
+					{
+
+						mostrar_cartas(jugadores);
+					}
+					else
+					{
+						mostrar_cartas_jugador(jugadores);
+					}
+					imprimir_mantel(m);
+
+					if (jugcont >= 1 && jugcont < 5)
+					{
+						jugcont++;
+					}
+
+					else
+					{
+						jugcont = 1;
+					}
+					if (jugadores.jugadores[u].ncartas == 0)
+					{
+						partida_acabada = 1;
+					}
+				}
+				primera_iteracion = 0;
+			} while (partida_acabada == 0);
+
+			if (jugadores.jugadores[0].ncartas == 0)
+			{
+				printf("Partida finalizada. HA GANADO EL JUGADOR 1");
+			}
+
+			else if (jugadores.jugadores[1].ncartas == 0)
+			{
+				printf("Partida finalizada. HA GANADO EL JUGADOR 2");
+			}
+
+			else if (jugadores.jugadores[2].ncartas == 0)
+			{
+				printf("Partida finalizada. HA GANADO EL JUGADOR 3");
+			}
+
+			else if (jugadores.jugadores[3].ncartas == 0)
+			{
+				printf("Partida finalizada. HA GANADO EL JUGADOR 4");
+			}
+
+			break;
+		}
+
+	case 'n':
+	case 'N':
+
+		repartir_cartas(&baraja, &jugadores);
+		indice_jugador_inicial = jugador_cinco_oros(&jugadores);
+		do
+		{
+			// Preguntar si se quieren ver todas las cartas
+			printf("¿Quieres ver todas las cartas? [s/n] ");
+			scanf("%c%*c", &opcar);
+		} while (opjug != 'n' && opjug != 'N' && opjug != 's' && opjug != 'S');
+		switch (opcar)
+		{
+		case 's':
+		case 'S':
+			cartas_ocultas = 0;
+		case 'n':
+		case 'N':
+			if (cartas_ocultas == 0)
+			{
+
+				mostrar_cartas(jugadores);
+			}
+			else
+			{
+				mostrar_cartas_jugador(jugadores);
+			}
+			imprimir_mantel(m);
+			do
+			{
+
+				// ----------------------------  Iteracion bots  ----------------------------
+
+				num = 1;
+				if (primera_iteracion == 1)
+				{
+					if (indice_jugador_inicial == 3)
+					{
+						u = 0;
+					}
+					else
+					{
+						u = indice_jugador_inicial + 1;
+					}
+				}
+				else
+				{
+					u = 0;
+				}
+				for (; u <= 3 && partida_acabada == 0; u++)
+				{
+
+					printf("\nTurno de JUG#%d:\n", u + 1);
+					buscar_posibles_jugador(m, maux, jugadores.jugadores[u], posibles, &contar_jugadas);
+					printf("Tiradas posibles: ");
+					for (j = 0; j < contar_jugadas; j++)
+					{
+						printf("%d: [%c%c%c] ", j + 1, posibles[j].pal, posibles[j].num1, posibles[j].num2);
+					}
+					printf("\n¿Que tirada realizas? %d", num);
+
+					// encuentra la carta que ha seleccionado el usuario en su mano, la saca de su mano y la pone en el mantel
+					sacar_carta_jugador(posibles[num - 1], &jugadores.jugadores[u]);
+					poner_carta_mantel(&m, maux, posibles[num - 1]);
+
+					// Impresion de las cartas
+					if (cartas_ocultas == 0)
+					{
+
+						mostrar_cartas(jugadores);
+					}
+					else
+					{
+						mostrar_cartas_jugador(jugadores);
+					}
+					imprimir_mantel(m);
+
+					if (jugcont >= 1 && jugcont < 5)
+					{
+						jugcont++;
+					}
+
+					else
+					{
+						jugcont = 1;
+					}
+					if (jugadores.jugadores[u].ncartas == 0)
+					{
+						partida_acabada = 1;
+					}
+				}
+				primera_iteracion = 0;
+			} while (partida_acabada == 0);
+
+			if (jugadores.jugadores[0].ncartas == 0)
+			{
+				printf("Partida finalizada. HA GANADO EL JUGADOR 1");
+			}
+
+			else if (jugadores.jugadores[1].ncartas == 0)
+			{
+				printf("Partida finalizada. HA GANADO EL JUGADOR 2");
+			}
+
+			else if (jugadores.jugadores[2].ncartas == 0)
+			{
+				printf("Partida finalizada. HA GANADO EL JUGADOR 3");
+			}
+
+			else if (jugadores.jugadores[3].ncartas == 0)
+			{
+				printf("Partida finalizada. HA GANADO EL JUGADOR 4");
+			}
+
+			break;
+		}
+	}
+}
+
+void inicializar_mantel(tmatriz *pm)
+{
+	int col, fil;
+
+	for (col = 0; col < COL; col++)
+	{
+		for (fil = 0; fil < FIL; fil++)
+		{
+			(pm->matriz[fil][col].pal) = '-';
+			(pm->matriz[fil][col].num1) = ' ';
+			(pm->matriz[fil][col].num2) = '-';
+		}
+	}
+	(pm->matriz[5][0].pal) = 'O';
+	(pm->matriz[5][0].num1) = ' ';
+	(pm->matriz[5][0].num2) = '5';
+}
+
+void imprimir_mantel(tmatriz pm)
+{
+	int fil, col;
+
+	printf_color_num(3);
+	printf("[ORO]");
+
+	printf_color_num(1);
+	printf("[COP]");
+
+	printf_color_num(4);
+	printf("[ESP]");
+
+	printf_color_num(2);
+	printf("[BAS]");
+
+	printf_reset_color();
+	printf("\n");
+
+	for (fil = 0; fil < FIL; fil++)
+	{
+		for (col = 0; col < COL; col++)
+		{
+			if (pm.matriz[fil][col].pal == 'O')
+			{
+				printf_color_num(3);
+				printf("[%c%c%c]", pm.matriz[fil][col].pal, pm.matriz[fil][col].num1, pm.matriz[fil][col].num2);
+			}
+
+			else if (pm.matriz[fil][col].pal == 'C')
+			{
+				printf_color_num(1);
+				printf("[%c%c%c]", pm.matriz[fil][col].pal, pm.matriz[fil][col].num1, pm.matriz[fil][col].num2);
+			}
+
+			else if (pm.matriz[fil][col].pal == 'E')
+			{
+				printf_color_num(4);
+				printf("[%c%c%c]", pm.matriz[fil][col].pal, pm.matriz[fil][col].num1, pm.matriz[fil][col].num2);
+			}
+
+			else if (pm.matriz[fil][col].pal == 'B')
+			{
+				printf_color_num(2);
+				printf("[%c%c%c]", pm.matriz[fil][col].pal, pm.matriz[fil][col].num1, pm.matriz[fil][col].num2);
+			}
+			else
+			{
+				printf("[%c%c%c]", pm.matriz[fil][col].pal, pm.matriz[fil][col].num1, pm.matriz[fil][col].num2);
+			}
+			printf_reset_color();
+		}
+		printf("\n");
+	}
+	printf_reset_color();
+}
+
+void buscar_posibles(tmatriz m, tmatriz maux, tjugador *p)
+{
+	int i, j; // contadores
+
+	p->ncartas = 0;
+	for (i = 0; i < COL; i++)
+	{
+		if (m.matriz[5][i].num2 != '5')
+		{ // se usa para las cartas con el 5 que no se han tirdo aun
+			p->vcartas[p->ncartas] = maux.matriz[5][i];
+			p->ncartas++;
+		}
+		else
+		{
+			for (j = 4; j >= 0; j--)
+			{ // revisa por abajo hasta encontrar un numero que esté disponible
+				if (m.matriz[j][i].num2 == '-')
+				{
+					p->vcartas[p->ncartas] = maux.matriz[j][i];
+					p->ncartas++;
+					j = -1; // sale del bucle, es decir, solo hay una iteracion del for, (break)
+				}
+			}
+			for (j = 6; j < FIL; j++)
+			{
+				if (m.matriz[j][i].num2 == '-')
+				{
+					p->vcartas[p->ncartas] = maux.matriz[j][i];
+					p->ncartas++;
+					j = FIL; // sale del bucle, es decir, solo hay una iteracion del for, (break)
+				}
+			}
+		}
+	}
+}
+
+int jugador_tiene_carta(tjugador j, tcarta c)
+{
+	int i;
+
+	for (i = 0; i < j.ncartas; i++)
+	{
+		if ((j.vcartas[i].pal == c.pal) && (j.vcartas[i].num1 == c.num1) && (j.vcartas[i].num2 == c.num2))
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+void asignar_baraja(tbaraja *bj)
+{
+	int i;
+
+	for (i = 0; i < 40; i++)
+	{
+		// Asignar palo
+		if (i < 10)
+			bj->vcartas[i].pal = 'O';
+		else if (i < 20)
+			bj->vcartas[i].pal = 'C';
+		else if (i < 30)
+			bj->vcartas[i].pal = 'E';
+		else
+			bj->vcartas[i].pal = 'B';
+
+		// Asignar num1
+		if ((i % 10) >= 7)
+			bj->vcartas[i].num1 = '1';
+		else
+			bj->vcartas[i].num1 = ' ';
+
+		// Asignar num2
+		if ((i) % 10 >= 7)
+		{
+			if (i % 10 == 7)
+				bj->vcartas[i].num2 = '0';
+			else if (i % 10 == 8)
+				bj->vcartas[i].num2 = '1';
+			else
+				bj->vcartas[i].num2 = '2';
+		}
+		else
+			bj->vcartas[i].num2 = 48 + 1 + i % 10;
+	}
+}
+
+void mezclar_baraja(tbaraja *bj)
+{
+	int azar1, azar2,
+		int i;
+	tcarta aux;
+
+	for (i = 0; i < 40; i++)
+	{
+		azar1 = numero_al_azar(40);
+		azar2 = numero_al_azar(40);
+		aux = bj->vcartas[azar1];
+		bj->vcartas[azar1] = bj->vcartas[azar2];
+		bj->vcartas[azar2] = aux;
+	}
+}
+
+void repartir_cartas(tbaraja *bj, tjugadores *js)
+{
+	int i, k;
+
+	for (i = 0; i < 10; i++)
+	{
+		js->jugadores[2].vcartas[i] = bj->vcartas[i];
+		js->jugadores[1].vcartas[i] = bj->vcartas[i + 10];
+		js->jugadores[0].vcartas[i] = bj->vcartas[i + 20];
+		js->jugadores[3].vcartas[i] = bj->vcartas[i + 30];
+	}
+	js->jugadores[0].ncartas = 10;
+	js->jugadores[1].ncartas = 10;
+	js->jugadores[2].ncartas = 10;
+	js->jugadores[3].ncartas = 10;
+}
+
+void mostrar_cartas(tjugadores js)
+{
+
+	int i, j;
+
+	printf("\n    	");
+	for (i = 1; i < 10; i++)
+	{
+		printf("[ %d ] ", i);
+	}
+	printf("[10 ]\n");
+	for (i = 0; i < 4; i++)
+	{
+		printf("JUG #%d: ", i + 1);
+		for (j = 0; j < js.jugadores[i].ncartas; j++)
+		{
+			if (js.jugadores[i].vcartas[j].num2 == 10)
+			{
+				printf("[%c%c%c] ", js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].num2);
+			}
+			else
+				printf("[%c%c%c] ", js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].num1, js.jugadores[i].vcartas[j].num2);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void mostrar_cartas_jugador(tjugadores js)
+{
+
+	int i, j;
+
+	printf("\n    	");
+	for (i = 1; i < 10; i++)
+	{
+		printf("[ %d ] ", i);
+	}
+	printf("[10 ]\n");
+	for (i = 0; i < 1; i++)
+	{
+		printf("JUG #%d: ", i + 1);
+		for (j = 0; j < js.jugadores[i].ncartas; j++)
+		{
+			if (js.jugadores[i].vcartas[j].num2 == 10)
+			{
+
+				printf("[%c%c%c] ", js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].num2);
+			}
+			else
+				printf("[%c%c%c] ", js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].num1, js.jugadores[i].vcartas[j].num2);
+		}
+		printf("\n");
+	}
+
+	for (i = 1; i < 4; i++)
+	{
+		printf("JUG #%d: ", i + 1);
+		for (j = 0; j < js.jugadores[i].ncartas; j++)
+		{
+			if (js.jugadores[i].vcartas[j].num2 == 10)
+			{
+				printf("[? ?] ", js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].num2);
+			}
+			else
+				printf("[? ?] ", js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].num1, js.jugadores[i].vcartas[j].num2);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void ocultar_cartas(tjugadores js)
+{
+
+	int i, j;
+
+	printf("\n    	");
+	for (i = 1; i < 10; i++)
+	{
+		printf("[ %d ] ", i);
+	}
+	printf("[10 ]\n");
+	for (i = 0; i < 4; i++)
+	{
+		printf("JUG #%d: ", i + 1);
+		for (j = 0; j < js.jugadores[i].ncartas; j++)
+		{
+			if (js.jugadores[i].vcartas[j].num2 == 10)
+			{
+				printf("[? ?] ", js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].num2);
+			}
+			else
+				printf("[? ?] ", js.jugadores[i].vcartas[j].pal, js.jugadores[i].vcartas[j].num1, js.jugadores[i].vcartas[j].num2);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void poner_carta_mantel(tmatriz *m, tmatriz maux, tcarta carta)
+{
+	int col, fil;
+	switch (carta.pal)
+	{
+	case 'O':
+		col = 0;
+		break;
+	case 'C':
+		col = 1;
+		break;
+	case 'E':
+		col = 2;
+		break;
+	default:
+		col = 3;
+		break;
+	}
+	for (fil = 0; fil < FIL; fil++)
+	{
+		if (carta.num1 == maux.matriz[fil][col].num1 && carta.num2 == maux.matriz[fil][col].num2 && m->matriz[fil][col].num2 == '-')
+		{
+			(*m).matriz[fil][col].pal = carta.pal;
+			(*m).matriz[fil][col].num1 = carta.num1;
+			(*m).matriz[fil][col].num2 = carta.num2;
+		}
+	}
+}
+
+void sacar_carta_jugador(tcarta carta, tjugador *jug)
+{
+	int k;
+
+	for (k = 0; k < (*jug).ncartas; k++)
+	{
+
+		if ((*jug).vcartas[k].pal == carta.pal && (*jug).vcartas[k].num1 == carta.num1 && (*jug).vcartas[k].num2 == carta.num2)
+		{
+			(*jug).vcartas[k].pal = (*jug).vcartas[(*jug).ncartas - 1].pal;
+			(*jug).vcartas[k].num1 = (*jug).vcartas[(*jug).ncartas - 1].num1;
+			(*jug).vcartas[k].num2 = (*jug).vcartas[(*jug).ncartas - 1].num2;
+			(*jug).ncartas--;
+			return; // es necesario???
+		}
+	}
+}
+
+void buscar_posibles_jugador(tmatriz m, tmatriz maux, tjugador jug, tcarta *p, int *num_posibles_jugadas)
+{
+	int i;
+	tjugador posibles_tiradas;
+
+	buscar_posibles(m, maux, &posibles_tiradas);
+
+	*num_posibles_jugadas = 0;
+
+	if (posibles_tiradas.ncartas == 0)
+	{
+		printf("Ninguna! :-/ Paso.");
+	}
+
+	else
+	{
+		for (i = 0; i < posibles_tiradas.ncartas; i++)
+		{
+			if (jugador_tiene_carta(jug, posibles_tiradas.vcartas[i]))
+			{
+				p[*num_posibles_jugadas] = posibles_tiradas.vcartas[i];
+				*num_posibles_jugadas = *num_posibles_jugadas + 1;
+			}
+		}
+	}
+}
+
+int jugador_cinco_oros(tjugadores *pj)
+{
+	int i, j;
+	tcarta carta;
+
+	for (i = 0; i < 4; i++)
+	{
+		for (j = 0; j < pj->jugadores[i].ncartas; j++)
+		{
+			carta = pj->jugadores[i].vcartas[j];
+			if (carta.pal == 'O' && carta.num1 == ' ' && carta.num2 == '5')
+			{
+				pj->jugadores[i].vcartas[j] = pj->jugadores[i].vcartas[pj->jugadores[i].ncartas - 1];
+				pj->jugadores[i].ncartas--;
+				return i;
+			}
+		}
+	}
+	return -1;
+}
