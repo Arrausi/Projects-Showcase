@@ -11,7 +11,7 @@ Welcome! This repository showcases my academic and personal projects in the fiel
 ### 1. Cinquillo Card Game
 * **Description:** Classic Card Game Implementation: A robust software architecture supporting local multiplayer (up to 4 players) and integrated Bots. Developed with a focus on state management to simulate competitive human play.
 * **Tech Stack:** C
-* **[Link to Folder](./link-al-proyecto)**
+* **Link to Folder** https://github.com/Arrausi/Projects-Showcase/blob/main/cinquillo-card-game
 
 ### 2. Decathlon Competition
 * **Description:** Development of a competition management system designed for Decathlon, featuring participant enrollment, performance tracking, and real-time leaderboards.
