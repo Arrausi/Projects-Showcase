@@ -6,7 +6,6 @@ package edu.upc.etsetb.poo.decathlon1.dominio;
 
 /**
  *
- * @author jonar
  */
 public class MarcaNegativaException extends Exception{
     
@@ -22,3 +21,4 @@ public class MarcaNegativaException extends Exception{
     }
     
 }
+
