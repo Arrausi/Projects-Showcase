@@ -6,7 +6,6 @@ package edu.upc.etsetb.poo.decathlon1.dominio;
 
 /**
  *
- * @author jonar
  */
 public class MarcaEnEvento100m extends MarcaEnEventoDePista{
     public static double A = 25.4347;
@@ -35,3 +34,4 @@ public class MarcaEnEvento100m extends MarcaEnEventoDePista{
     }
     
 }
+
