@@ -6,7 +6,6 @@ package edu.upc.etsetb.poo.decathlon1.dominio;
 
 /**
  *
- * @author jonar
  */
 public abstract class MarcaEnEventoDeCampo extends MarcaEnEvento{
     
@@ -27,3 +26,4 @@ public abstract class MarcaEnEventoDeCampo extends MarcaEnEvento{
     }
     
 }
+
