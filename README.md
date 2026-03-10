@@ -16,6 +16,7 @@ Welcome! This repository showcases my academic and personal projects in the fiel
 ### 2. Decathlon Competition
 * **Description:** Development of a competition management system designed for Decathlon, featuring participant enrollment, performance tracking, and real-time leaderboards.
 * **Tech Stack:** Java
+* **[Link to Folder](./decathlon-competition)** 
 
 ---
 
