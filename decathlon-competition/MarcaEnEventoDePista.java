@@ -6,7 +6,6 @@ package edu.upc.etsetb.poo.decathlon1.dominio;
 
 /**
  *
- * @author jonar
  */
 public abstract class MarcaEnEventoDePista extends MarcaEnEvento{
     
@@ -30,3 +29,4 @@ public abstract class MarcaEnEventoDePista extends MarcaEnEvento{
         //throw new UnsupportedOperationException("MarcaEnEventoDePista::calcularPuntosEvento(...) NO se ha implementado");
     }
 }
+
